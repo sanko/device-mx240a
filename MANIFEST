@@ -1,0 +1,10 @@
+Build.PL
+etc/MX240a.txt
+lib/Device/MX240a.pm
+lib/Device/MX240a/Handset.pm
+lib/Device/MX240a/Win32.pm
+LICENSE
+MANIFEST			This list of files
+scripts/sample.pl
+TODO.txt
+META.yml
