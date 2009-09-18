@@ -3,7 +3,6 @@ package Device::MX240a::Handset;
     use strict;
     use warnings;
     use Carp qw[confess carp];
-    use Data::Dump qw[pp];
     use Scalar::Util qw[refaddr];
     our $VERSION = 0.3;
     my @REGISTRY
@@ -89,10 +88,18 @@ package Device::MX240a::Handset;
         for my $b (values %{$blist{refaddr $self}}) {
             if ($b->{q[id]} == $id) {
                 $buddy = $b;
-                last
+                last;
             }
         }
         return $buddy;
+    }
+
+    sub _locate_id_by_buddy {
+        my ($self, $screen_name) = @_;
+        return unless defined $screen_name;
+        return unless length $screen_name;
+        return unless $blist{refaddr $self}{$screen_name};
+        return $blist{refaddr $self}{$screen_name}{'id'};
     }
 
     sub _close_window {
@@ -102,15 +109,20 @@ package Device::MX240a::Handset;
 
     sub _send_im {
         my ($self, $window, $msg) = @_;
-        return $base{refaddr $self}
-            ->write((pack q[C3], hex(q[8] . $id{refaddr $self}), $window, 0)
-                    . $msg
-                        . (pack q[C2], 0xff, 0x00));
+        my $bid = pack 'C2', hex('8' . $id{refaddr $self}), $window;
+        my $send = chr(0) . $msg . (pack 'C2', 0xff, 0x00);
+        $send = $bid . join $bid, grep length, split(m[(.{22})], $send);
+        $base{refaddr $self}->write($send) || return;
+        $base{refaddr $self}
+            ->write(pack 'C3', hex('e' . $id{refaddr $self}), 0xce, $window)
+            || return;
+        return 1;
+    }
 
-=docs
-if no terminator, just end after 3 chunks of 8.
-if only room for ff in third chunk, put that.
-=cut
+    sub _range_error {
+        my ($self, $error) = @_;
+        return $base{refaddr $self}
+            ->write((pack q[C2], hex(q[c] . $id{refaddr $self}), 0xc5));
     }
 }
 1;

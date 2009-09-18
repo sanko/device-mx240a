@@ -7,88 +7,88 @@ Commands from base to daemon:
 code  data                 description
 ----------------------------------------------------------------
 first byte
-cN                         same as dN, but for NAK
-dN                         address handset N (recv message, partial)
-eN                         same as fN, but for NAK
-ef    0x01 0x01            init base ACK?
-fN    		                address handset N (recv message, complete)
+cN                         		same as dN, but for NAK
+dN                         		address handset N (recv message, partial)
+eN                         		same as fN, but for NAK
+ef    0x01 0x01            		init base ACK?
+fN                         		address handset N (recv message, complete)
 
 second byte
-8c    <none>               handset couldn't contact base
-8c    0xc1                 handset shut down waiting for approval
-8e    handheld_id          connect (handset contacting base)
+8c    <none>               		handset couldn't contact base
+8c    0xc1                 		handset shut down waiting for approval
+8e    handheld_id          		connect (handset contacting base)
 
-91    username             send username
-92    password             send password
-93    <none>               ? exit (Logoff)
-94    0x81                 talk? not followed by talk ack
-94    0x02                 talk?
-94    0x01                 talk? IMfree Agent (in first group)
-95    <none>               bye?
-96    away_msg             away
-9a    <none>               warn
-9b    0x80 (list of single byte uids)	enter chat req?
+91    username             		send username
+92    password             		send password
+93    <none>               		? exit (Logoff)
+94    0x81                 		talk? not followed by talk ack
+94    0x02                 		talk?
+94    0x01                 		talk? IMfree Agent (in first group)
+95    <none>               		bye?
+96    away_msg             		away
+9a    <none>               		warn
+9b    0x80 (list of 1byte uids)	enter chat req?
 
-a*                         same as 9*, but for MSN instead of AIM
+a*                         		same as 9*, but for MSN instead of AIM
 
-b*                         same as 9*, but for Yahoo! instead of AIM
+b*                         		same as 9*, but for Yahoo! instead of AIM
 
-ce    handheld_id          logoff (registration request)
-fd *  0x01 or 0x02         ACK
-fe                         end of USB report
-ff                         end of multi-report packet
-
+ce    handheld_id          		logoff (registration request)
+fd *  0x01 or 0x02         		ACK
+fe                         		end of USB report
+ff                         		end of multi-report packet
 
 * a special sequence like below:
     fN fd 01 fe
     fN fd 02 fe
 
 When address & 0xc0 == 0xc0:
-	address & 0x10 == 0 -> NAK
-	address & 0x20 == 0 -> more data after this block of 4 USB reports;
+    address & 0x10 == 0 -> NAK
+    address & 0x20 == 0 -> more data after this block of 4 USB reports;
 
-All commands have bit 0x80 set.  Bytes without that bit set are data for the preceeding command.  I tried code implementing this bytewise, but it failed in undiscernable ways under overflow conditions.
-
-
+All commands have bit 0x80 set.  Bytes without that bit set are data for the
+preceeding command.  I tried code implementing this bytewise, but it failed in
+undiscernable ways under overflow conditions.
 
 Commands from daemon to base:
 code  dir  data                 term ACK description
 ----------------------------------------------------------------
 
 8N    >    id mesg              ff00  X  send message
-			if no terminator, just end after 3 chunks of 8.
-			if only room for ff in third chunk, put that.
-			id =
-				02 - hello world
-				02 - test
-				01 - Select a Service a) Add new buddy__spaces__
-				01 -   b)Delete existing buddy  c)Add new group
-				81 - Tyler Durden 003:has entered the room.
+            if no terminator, just end after 3 chunks of 8.
+            if only room for ff in third chunk, put that.
+            id =
+                02 - hello world
+                02 - test
+                01 - Select a Service a) Add new buddy__spaces__
+                01 -   b)Delete existing buddy  c)Add new group
+                81 - Tyler Durden 003:has entered the room.
 
 eNd3  >    <none>               0000  X  login successful
 eed3  >    <none>               00       ? (registration accepted)
 eec5  >    <none>               00       (registration refused)
+eNc5  >    01                    00         Handset is not registered
 eNe5  >                         0000  X  login failed
-	   0x00		An error orccured during login. Plese try again.		# THESE ARE MY CHANCES vvvv
-	   0x01		An invalid Screen Name or Password was entered. Please	#
-			be sure to press the [] key before entering numeric			#
-			characters.													#
-	   0x02 	An invalid Screen Name or Password was entered. Please	#
-			be sure to press the [] key before entering numeric			#
-			characters.													#
-	   0x03		The AIM service is temporarily unavailable. Please try	#
-	   		agian later                                             	#
-	   0x04		You have attempted to sign into AIM too frequently.     #
-	 		Please try again later.                                 	#
-	   0x05		You cannot login to the handheld using the same screen  #
-	   		name that you are currently using to sign into AOL.     	#
-			Please use a different screen name.                     	#
-	   0x06		An error orccured during login. Plese try again.        #
-	   0x07		There has been an error openning a connection to the AIM#
-	   		service. Please press Exit to try again.                	#
-	   0x08		The session has been terminated because you signed on   #
-	   		with this screen name at another location.              	#
-	   0x09		Internet connection to the IM server has been lost.     # THESE WERE MY CHANGES ^^^^
+           00        An error orccured during login. Plese try again.        # THESE ARE MY CHANCES vvvv
+           01        An invalid Screen Name or Password was entered. Please    #
+            be sure to press the [] key before entering numeric            #
+            characters.                                                    #
+           02     An invalid Screen Name or Password was entered. Please    #
+            be sure to press the [] key before entering numeric            #
+            characters.                                                    #
+           03        The AIM service is temporarily unavailable. Please try    #
+               agian later                                                 #
+           04        You have attempted to sign into AIM too frequently.     #
+             Please try again later.                                     #
+           05        You cannot login to the handheld using the same screen  #
+               name that you are currently using to sign into AOL.         #
+            Please use a different screen name.                         #
+           06        An error orccured during login. Plese try again.        #
+           07        There has been an error openning a connection to the AIM#
+                service. Please press Exit to try again.                    #
+           08        The session has been terminated because you signed on   #
+               with this screen name at another location.                  #
+           09        Internet connection to the IM server has been lost.     # THESE WERE MY CHANGES ^^^^
 cNd7  >    service_name         ff00  X  send service_name
 
 cNc9  >    group name           ff00  X  send person data
@@ -96,12 +96,12 @@ aNc9  >    remaining-data       ff00  X  send more person data
 eNc9  >    0x81                 0000  X  enter chat ack? (create chat room?)
 cNd9  >    handheld_name        ff00  X  send handheld_name
 eNca  >    status 0x01-0x3c     0000  X  set buddy status (status: ANN, AYN, UNN)
-	ANN = (no icon)
-	AYN = Buddy is online using a mobile device
-	UNN = Buddy is away
-	UYN = Buddy is away
-	INN = Buddy is idle
-	IYN = Buddy is idle
+    ANN = (no icon)
+    AYN = Buddy is online using a mobile device
+    UNN = Buddy is away
+    UYN = Buddy is away
+    INN = Buddy is idle
+    IYN = Buddy is idle
 eNda  >    person 0x01-0x3c     0000  X  edit buddy status
 cNcd  >    tone# tone_data      ff00  X  send (tone) data?
 8Ncd  >    remaining_data       ff00  X  send more (tone) data?
@@ -168,32 +168,32 @@ cN f1: ack with testC0, nak with \x01tstC0
 
 
 Guesses at bit meanings:
-	first byte:
-		Appears to set an address context similar to input from the handset.
-		Bits 0x60:
-			When 0x60 (e), it is a reply. there is no ff terminator when addressing a handset.
-			Bit 0x40 seems to get reset (c->8) when sending more tone data
-			Bit 0x40 seems to get reset and bit 0x20 set (c->a) when sending more person data
-		Bit 0x10 is set when repeating the command after a NAK.
-		Bit 0x08 is set when NOT addressing a handset.
-			When not addressing a handset, there is no handset ACK.
-		Bits 0x07 are handset address when addressing a handset.
-	second byte:
-		Bit 0x80 is always set except when sending a message.
-			Chat room ids have this bit set, so it will be set then.
-		Bits 0xf0:
-			0xc0: create something (when bit 0x08 is set)
-			0xd0: delete something (when bit 0x08 is set)
-			0xe0: event
-		Bits 0x0f:
-			0x03: login or registration accepted
-			0x05: login or registration refused
-			0x07: service name
+    first byte:
+        Appears to set an address context similar to input from the handset.
+        Bits 0x60:
+            When 0x60 (e), it is a reply. there is no ff terminator when addressing a handset.
+            Bit 0x40 seems to get reset (c->8) when sending more tone data
+            Bit 0x40 seems to get reset and bit 0x20 set (c->a) when sending more person data
+        Bit 0x10 is set when repeating the command after a NAK.
+        Bit 0x08 is set when NOT addressing a handset.
+            When not addressing a handset, there is no handset ACK.
+        Bits 0x07 are handset address when addressing a handset.
+    second byte:
+        Bit 0x80 is always set except when sending a message.
+            Chat room ids have this bit set, so it will be set then.
+        Bits 0xf0:
+            0xc0: create something (when bit 0x08 is set)
+            0xd0: delete something (when bit 0x08 is set)
+            0xe0: event
+        Bits 0x0f:
+            0x03: login or registration accepted
+            0x05: login or registration refused
+            0x07: service name
 
-			0x09: person data, chat room, handheld name
-			0x0a: buddy status
-			0x0d: ringtone data
-			0x0e: bye ack, IM screen
+            0x09: person data, chat room, handheld name
+            0x0a: buddy status
+            0x0d: ringtone data
+            0x0e: bye ack, IM screen
 
 
 
@@ -256,7 +256,7 @@ Closeup of registration sequence
 000466  ]>  eec5 0000 xxxx xxxx # registration refused
 
 Closeup of when bit 4 gets set
-	note that we include the acks in this example because they look important
+    note that we include the acks in this example because they look important
 
 000267  ]>  e1ca 414e 4e01 0000                      ..ANN... # add person
 000268  B<  e1fd 01fe 336c 7668                      ....3lvh
@@ -272,18 +272,18 @@ see how the ack contains eN instead of fN, so we repeat with bit 4 set
 
 init usb -------------
 
-000001	CS  00000000:  8006 0001 0000 1200
-	C<  00000000:  1201 1001 0000 0008 b822 017f 0100 0102  ........."......
-	    00000010:  0001                                     ..
-000002	CS  00000000:  8006 0002 0000 0900
-	C<  00000000:  0902 2200 0101 02c0 32                   ..".....2
-000003	CS  00000000:  8006 0002 0000 2200
-	C<  00000000:  0902 2200 0101 02c0 3209 0400 0001 0301  ..".....2.......
-	    00000010:  0000 0921 0001 0001 221d 0007 0581 0308  ...!....".......
-	    00000020:  000a                                     ..
-000006	CS  00000000:  8106 0022 0000 5d00
-	C<  00000000:  0600 ff09 01a1 0119 0129 0215 0026 ff00  .........)...&..
-	    00000010:  7508 9508 8102 1901 2902 9102 c0         u.......)....
+000001    CS  00000000:  8006 0001 0000 1200
+    C<  00000000:  1201 1001 0000 0008 b822 017f 0100 0102  ........."......
+        00000010:  0001                                     ..
+000002    CS  00000000:  8006 0002 0000 0900
+    C<  00000000:  0902 2200 0101 02c0 32                   ..".....2
+000003    CS  00000000:  8006 0002 0000 2200
+    C<  00000000:  0902 2200 0101 02c0 3209 0400 0001 0301  ..".....2.......
+        00000010:  0000 0921 0001 0001 221d 0007 0581 0308  ...!....".......
+        00000020:  000a                                     ..
+000006    CS  00000000:  8106 0022 0000 5d00
+    C<  00000000:  0600 ff09 01a1 0119 0129 0215 0026 ff00  .........)...&..
+        00000010:  7508 9508 8102 1901 2902 9102 c0         u.......)....
 
 00f936 = base id?
 

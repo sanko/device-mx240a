@@ -1,7 +1,6 @@
 #
 package Device::MX240a::Win32;
 {
-    use Data::Dump qw[pp];
     use strict;
     use warnings;
     use Win32API::File 0.05 qw[:ALL];
@@ -75,6 +74,7 @@ package Device::MX240a::Win32;
 
     sub _close {
         my ($self) = @_;
+        return if !$self->_handle;
         return CloseHandle($self->_handle);
     }
 

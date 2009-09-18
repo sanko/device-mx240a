@@ -1,34 +1,41 @@
+#!perl -I../lib
 use strict;
 use warnings;
 
 # http://cvs.sourceforge.net/viewcvs.py/mx240ad/IMopen/protocol-notes?rev=1.2.2.3&view=markup
 # http://cvs.sourceforge.net/viewcvs.py/mx240ad/mx240ad/mx240a-protocol.txt?rev=1.4&view=markup
 $|++;
-use lib q[../lib/];
 use Device::MX240a::Win32;
 my $base = Device::MX240a::Win32->new();
+
 die q[Failed to contact base.] if !$base;
 
-#$base->write(0xef . 0x01 . 0x01 );
-#my $s = 230;
-#for (0..9) {
-#    $base->write(pack q[C], $_ + $s);
-#    $base->read;
-#}
-#$base->write(pack q[C], 0xca);    # 5445 53e3 0060 6000  TES.....
-#$base->read;
-#$base->read;
-#$base->read;
-#$base->read;
-#die;
-#$base->write(pack q[C], 0xfb); # 5445 53e3 0060 6000  TES.....
-#$base->write(pack q[C], 0xab); # 5445 53e3 0060 6000  TES.....
-#$base->write(pack q[C], 0xbb); # 5445 53e3 0060 6000  TES.....
-#$base->write(pack q[C], 0x3a); # 5253 5349 00fe 6000  RSSI....
-#$base->write(pack q[C], 0x7a); # 5253 5349 00fe 6000  RSSI....
-#$base->write(pack q[C], 0xca); # 5253 5349 00fe 6000  RSSI....
-#$base->read;
-my $debug_line = 0;
+
+if(0){
+$base->write(0xef . 0x01 . 0x01 );
+my $s = 230;
+for (0..9) {
+    $base->write(pack q[C], $_ + $s);
+    $base->read;
+}
+$base->write(pack q[C], 0xca);    # 5445 53e3 0060 6000  TES.....
+$base->read;
+$base->read;
+$base->read;
+$base->read;
+die;
+$base->write(pack q[C], 0xfb); # 5445 53e3 0060 6000  TES.....
+$base->write(pack q[C], 0xab); # 5445 53e3 0060 6000  TES.....
+$base->write(pack q[C], 0xbb); # 5445 53e3 0060 6000  TES.....
+$base->write(pack q[C], 0x3a); # 5253 5349 00fe 6000  RSSI....
+$base->write(pack q[C], 0x7a); # 5253 5349 00fe 6000  RSSI....
+$base->write(pack q[C], 0xca); # 5253 5349 00fe 6000  RSSI....
+$base->read;
+
+
+
+}
+my $debug_line = 1;
 $base->on_im(
     sub {
         my ($self, $handset, $message) = @_;
@@ -64,7 +71,7 @@ $base->on_connect(
 $base->on_login(
     sub {
         my ($self, $handset) = @_;
-        warn sprintf q[Login: %s:%s @ ], $handset->username,
+        warn sprintf q[Login: %s:%s @ %s], $handset->username,
             $handset->password, $handset->service;
         return 1;    # okay
         return 0;    # deny login
@@ -90,12 +97,10 @@ $base->on_login_complete(
                         mobile     => 1
                        },
             )
-        {   $handset->_buddy_in($buddy);
-            sleep 1;
-        }
+        {   $handset->_buddy_in($buddy);   }
     }
 );
-$base->on_open_window(
+$base->on_window_open(
     sub {
         my ($self, $handset, $buddy, $with_ack) = @_;
         warn sprintf
@@ -105,7 +110,7 @@ $base->on_open_window(
         return 1;
     }
 );
-$base->on_close_window(
+$base->on_window_close(
     sub {
         my ($self, $handset) = @_;
         warn q[Close Window];
@@ -126,11 +131,62 @@ $base->on_data_out(
         print_hex(q[>], $data);
     }
 );
+
+
 $base->do_one_loop while 1;
 exit;
 
+
+
+    sub hexdump {
+        my ( $stuff, $forcehex) = @_;
+        return '' if !defined $stuff;
+        $forcehex = 0 if !defined $forcehex;
+        my $retbuff = '';
+        my @stuff = split '', $stuff;
+        return $stuff
+            unless $forcehex
+                or grep { $_ lt chr(0x20) or $_ gt chr(0x7E) } @stuff;
+        while (@stuff) {
+            $retbuff .= qq[\n\t];
+            my @currstuff = splice(@stuff, 0, 16);
+            {
+                my $i = 0;
+                foreach my $currstuff (@currstuff) {
+                    $retbuff .= ' ' unless $i % 4;
+                    $retbuff .= ' ' unless $i % 8;
+                    $retbuff .= sprintf "%02X ", ord($currstuff);
+                    $i++;
+                }
+                for my $j ($i .. 16) {
+                    $retbuff .= ' ' unless $j % 4;
+                    $retbuff .= ' ' unless $j % 8;
+                    $retbuff .= '   ';
+                }
+            }
+            $retbuff .= '  ';
+            {
+                my $i = 0;
+                foreach my $currstuff (@currstuff) {
+                    $retbuff .= ' ' unless $i % 4;
+                    $retbuff .= ' ' unless $i % 8;
+                    if ($currstuff ge chr(0x20) and $currstuff le chr(0x7E)) {
+                        $retbuff .= $currstuff;
+                    }
+                    else {
+                        $retbuff .= '.';
+                    }
+                    $i++;
+                }
+            }
+        }
+        return $retbuff;
+    }
+
+
 sub print_hex {
     my ($direction, $read) = @_;
+    return print hexdump($read, 1);
     $read =~ s|^\0||;
     my $write = q[];
     my (@sets) = $read =~ m[(..)]g;
