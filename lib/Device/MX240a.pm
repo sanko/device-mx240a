@@ -306,7 +306,13 @@
                 last;
                 $self->read();
             }
-            elsif ($data_in{refaddr $self} =~ m|[^\xff]\xfe?|) {
+            elsif ($data_in{refaddr $self} =~ m|^\0\xff\xfe?|) {
+
+                #warn "[M|$IM|$1|$data_in{refaddr $self}]";
+                $self->ACK(0);
+                last;
+            }
+            elsif ($data_in{refaddr $self} =~ m|[^\xff]\xfe|) {
 
                 #warn "[M|$IM|$1|$data_in{refaddr $self}]";
                 $self->ACK(0);
@@ -316,12 +322,13 @@
             }
             else {
                 $data_in{refaddr $self} =~ s[^.][];
-                $IM .= substr($data_in{refaddr $self},0,8,'');
+                $IM .= substr($data_in{refaddr $self}, 0, 8, '');
+
                 #warn "[?|$IM|$data_in{refaddr $self}]";
                 #$self->ACK((($data_in{refaddr $self} =~ m[\xfe]) ? 1: 0));
                 $self->ACK(0);
                 $self->read();
-                last;
+                last if $data_in{refaddr $self} =~ m[^\0\xff\xfe?];
             }
             $loops++;
         }
