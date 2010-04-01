@@ -3,7 +3,6 @@ package Device::MX240a::Win32;
 {
     use strict;
     use warnings;
-    use Win32API::File 0.05 qw[:ALL];
     use Carp qw[confess carp];
     our @ISA;
     our $VERSION = 0.4;
@@ -17,7 +16,8 @@ package Device::MX240a::Win32;
     sub __get_HID {
         my $size = 1024;
         my $all;
-        while (!QueryDosDevice([], $all, $size)) {
+        require Win32API::File;
+        while (!Win32API::File::QueryDosDevice([], $all, $size)) {
             $size *= 2;
         }
         my $pattern = sprintf q[HID#Vid_%s&Pid_%s.*],
@@ -27,7 +27,7 @@ package Device::MX240a::Win32;
         my $device;
         for my $d (@all) {
             $device = $d;
-            if (!QueryDosDevice($device, $all, 0)) {
+            if (!Win32API::File::QueryDosDevice($device, $all, 0)) {
                 carp sprintf q[Can't get device definition (%s): %s], $device,
                     fileLastError();
             }
@@ -46,36 +46,40 @@ package Device::MX240a::Win32;
 
     sub _init_USB {
         my ($self) = @_;
-        return $self->write(pack q[C4], 0xad, 0xef, 0x8d, 0xff);
+         return $self->write(pack q[C4], 0xad, 0xef, 0x8d, 0xff);
     }
 
     sub _open {
         my ($self) = @_;
         my $HID = __get_HID();
-        if (not defined $HID) {return}
-        my $device = createFile(q[//./] . $HID,
-                         GENERIC_READ | GENERIC_WRITE | FILE_FLAG_OVERLAPPED);
-        return $device;
+        return if ! defined $HID;
+        require Win32API::File;
+        my $device = Win32API::File::createFile(q[//./] . $HID,
+                         Win32API::File::GENERIC_READ()  |
+                         Win32API::File::GENERIC_WRITE() |
+                         Win32API::File::FILE_FLAG_OVERLAPPED());
+        tie *device, 'Win32API::File', $device;
+        return \*device;
     }
 
     sub _write {
         my ($self, $data) = @_;
-        my $sent = 0;
-        WriteFile($self->_handle, $data, 0, $sent, []);
+        my $sent = syswrite($self->_handle, $data, length($data), 0);
+        #warn sprintf 'Wrote %d bytes', $sent;
         return $sent;
     }
 
     sub _read {
         my ($self, $amount) = @_;
-        ReadFile($self->_handle, my ($data_in), $amount, my ($length), [])
-            or return;
+        my $read = sysread($self->_handle, my($data_in), $amount);
+        #warn sprintf 'Read %d bytes', $read;
         return $data_in;
     }
 
     sub _close {
         my ($self) = @_;
         return if !$self->_handle;
-        return CloseHandle($self->_handle);
+        return close $self->_handle;
     }
 
     sub DESTROY {
