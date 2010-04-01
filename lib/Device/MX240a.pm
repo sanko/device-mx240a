@@ -25,10 +25,12 @@
     sub new {    # no args... yet.
         my ($class, $args) = @_;
         my $self = bless \$class, $class;
-        my $handle = (($^O =~ m[Win32])
-                      ? Device::MX240a::Win32->_open($self, $args)
-                      : Device::MX240a::libusb->_open($self, $args)
-        );
+        my $handle = $self->_open($args);
+
+        #(($^O =~ m[Win32])
+        # ? Device::MX240a::Win32->_open($self, $args)
+        # : Device::MX240a::libusb->_open($self, $args)
+        #);
         return if !$handle;
         $handle{refaddr $self}  = $handle;
         $data_in{refaddr $self} = q[];
