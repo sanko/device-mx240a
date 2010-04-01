@@ -492,7 +492,7 @@ if only room for ff in third chunk, put that.
             $part = qq[\0] . $part;
             $sent += $self->_write($part);
             require Time::HiRes;
-            Time::HiRes::sleep(0.25);
+            Time::HiRes::sleep(0.15);
             $_on_data_out{refaddr $self}->($self, $part)
                 if $_on_data_out{refaddr $self};
         }
